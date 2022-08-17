@@ -1,231 +1,554 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart';
 
-class BarChartSample7 extends StatefulWidget {
-  const BarChartSample7({Key? key}) : super(key: key);
-
-  static const shadowColor = Color(0xFFCCCCCC);
-  static const dataList = [
-    _BarData(Color(0xFFecb206), 18, 0),
-    _BarData(Color(0xFFa8bd1a), 17, 0),
-    _BarData(Color(0xFF17987b), 10, 0),
-    _BarData(Color(0xFFb87d46), 2.5, 0),
-    _BarData(Color(0xFF295ab5), 5, 0),
-    _BarData(Color(0xFFea0107), 9, 0),
+class BarChartSample1 extends StatefulWidget {
+  final List<Color> availableColors = const [
+    Colors.purpleAccent,
+    Colors.yellow,
+    Colors.lightBlue,
+    Colors.orange,
+    Colors.pink,
+    Colors.redAccent,
   ];
 
+  const BarChartSample1({Key? key}) : super(key: key);
+
   @override
-  State<BarChartSample7> createState() => _BarChartSample7State();
+  State<StatefulWidget> createState() => BarChartSample1State();
 }
 
-class _BarChartSample7State extends State<BarChartSample7> {
-  BarChartGroupData generateBarGroup(
-    int x,
-    Color color,
-    double value,
-    double shadowValue,
-  ) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: value,
-          color: color,
-          width: 6,
-        ),
-        BarChartRodData(
-          toY: shadowValue,
-          color: BarChartSample7.shadowColor,
-          width: 6,
-        ),
-      ],
-      showingTooltipIndicators: touchedGroupIndex == x ? [0] : [],
-    );
+class BarChartSample1State extends State<BarChartSample1> {
+  final Color barBackgroundColor = const Color.fromARGB(255, 248, 120, 84);
+  final Duration animDuration = const Duration(milliseconds: 250);
+
+  int touchedIndex = -1;
+
+  bool isPlaying = false;
+
+  //GlobalKey<ScaffoldState> _scaffoldkey = new GlobalKey<ScaffoldState>();
+  @override
+  void initState() {
+    super.initState();
+    home();
+    summary();
+    //dispose();
   }
 
-  int touchedGroupIndex = -1;
+  String? access_token;
+  int? id;
+  String? name;
+  String? email;
+  String? profile_photo_url;
+  String? sum;
+  int? asset;
+  bool isLoading = false;
+  List? listDataReport;
+  Future<void> home() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? data_token = prefs.getString('access_token');
+    String? data_name = prefs.getString('name');
+    String? data_email = prefs.getString('email');
+    String? data_photo_url = prefs.getString('profile_photo_url');
+    int? data_id = prefs.getInt('id');
+    //print(userData);
+    setState(() {
+      access_token = data_token;
+      id = data_id;
+      name = data_name;
+      email = data_email;
+      profile_photo_url = data_photo_url;
+    });
+    //print(access_token);
+  }
+
+  Future<dynamic> summary() async {
+    try {
+      Future.delayed(Duration.zero, () async {
+        setState(() {
+          isLoading = true;
+        });
+        var data = {"user_id": id};
+        var response =
+            await Dio().post("http://10.0.2.2:8000/api/reports/chart",
+                data: data,
+                options: Options(headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer ${access_token}"
+                }));
+        //print(response.headers);
+        print(response);
+        // var response2 =
+        //     await Dio().post("http://10.0.2.2:8000/api/reports/user",
+        //         data: data,
+        //         options: Options(headers: {
+        //           "Accept": "application/json",
+        //           "Content-Type": "application/json",
+        //           "Authorization": "Bearer ${access_token}"
+        //         }));
+
+        if (response.statusCode == 200) {
+          List listData = await response.data;
+          setState(() {
+            isLoading = false;
+            listDataReport = listData;
+            // sum = listData[0]['sum'];
+            // asset = listData[0]['asset'];
+            // listDataReport = listData2;
+          });
+        }
+        //List listData2 = await response2.data;
+        // if (listData != Null) {
+
+        // }
+
+        // print(listData2);
+      });
+
+      setState(() {
+        isLoading = false;
+      });
+    } on DioError catch (dioError) {
+      String? message;
+      if (dioError.response == null) {
+        setState(() {
+          message = "Server Error!";
+          isLoading = false;
+        });
+      } else if (dioError.response!.statusCode == 400) {
+        setState(() {
+          isLoading = false;
+          message = dioError.response!.data["message"].toString();
+        });
+      } else if (dioError.response!.statusCode == 404) {
+        setState(() {
+          isLoading = false;
+          message = "Server not found!";
+        });
+      } else if (dioError.response!.statusCode == 401) {
+        setState(() {
+          isLoading = false;
+          message = "Unauthorized";
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          message = dioError.response!.data["message"].toString();
+        });
+      }
+      final snackBar = SnackBar(
+        content: Text(message!),
+        action: SnackBarAction(
+            label: "Undo",
+            onPressed: () {
+              //setState(() {
+              isLoading = false;
+              // });
+            }),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 1.4,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceBetween,
-                  borderData: FlBorderData(
-                    show: true,
-                    border: const Border.symmetric(
-                      horizontal: BorderSide(
-                        color: Color(0xFFececec),
-                      ),
-                    ),
+    return AspectRatio(
+      aspectRatio: 1.1,
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        color: const Color(0xff232d37),
+        child: Stack(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
+                children: <Widget>[
+                  const Text(
+                    'Monthly',
+                    style: TextStyle(
+                        color: Color(0xff68737d),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold),
                   ),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    leftTitles: AxisTitles(
-                      drawBehindEverything: true,
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(
-                              color: Color(0xFF606060),
+                  const SizedBox(
+                    height: 4,
+                  ),
+                  const Text(
+                    'Grafik Revenue',
+                    style: TextStyle(
+                        color: Color(0xff68737d),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(
+                    height: 38,
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: listDataReport?.length == null
+                          ? Container()
+                          : BarChart(
+                              mainBarData(),
+                              swapAnimationDuration: animDuration,
                             ),
-                            textAlign: TextAlign.left,
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 36,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          return SideTitleWidget(
-                            axisSide: meta.axisSide,
-                            child: _IconWidget(
-                              color: BarChartSample7.dataList[index].color,
-                              isSelected: touchedGroupIndex == index,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: AxisTitles(),
-                    topTitles: AxisTitles(),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: const Color(0xFFececec),
-                      dashArray: null,
-                      strokeWidth: 1,
                     ),
                   ),
-                  barGroups: BarChartSample7.dataList.asMap().entries.map((e) {
-                    final index = e.key;
-                    final data = e.value;
-                    return generateBarGroup(
-                        index, data.color, data.value, data.shadowValue);
-                  }).toList(),
-                  maxY: 20,
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    handleBuiltInTouches: false,
-                    touchTooltipData: BarTouchTooltipData(
-                        tooltipBgColor: Colors.transparent,
-                        tooltipMargin: 0,
-                        getTooltipItem: (
-                          BarChartGroupData group,
-                          int groupIndex,
-                          BarChartRodData rod,
-                          int rodIndex,
-                        ) {
-                          return BarTooltipItem(
-                            rod.toY.toString(),
-                            TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: rod.color!,
-                                fontSize: 18,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.black26,
-                                    blurRadius: 12,
-                                  )
-                                ]),
-                          );
-                        }),
-                    touchCallback: (event, response) {
-                      if (event.isInterestedForInteractions &&
-                          response != null &&
-                          response.spot != null) {
-                        setState(() {
-                          touchedGroupIndex =
-                              response.spot!.touchedBarGroupIndex;
-                        });
-                      } else {
-                        setState(() {
-                          touchedGroupIndex = -1;
-                        });
-                      }
-                    },
+                  const SizedBox(
+                    height: 12,
                   ),
-                ),
+                ],
               ),
             ),
+            // Padding(
+            //   padding: const EdgeInsets.all(8.0),
+            //   child: Align(
+            //     alignment: Alignment.topRight,
+            //     child: IconButton(
+            //       icon: Icon(
+            //         isPlaying ? Icons.pause : Icons.play_arrow,
+            //         color: const Color(0xff68737d),
+            //       ),
+            //       onPressed: () {
+            //         setState(() {
+            //           isPlaying = !isPlaying;
+            //           if (isPlaying) {
+            //             refreshState();
+            //           }
+            //         });
+            //       },
+            //     ),
+            //   ),
+            // )
           ],
         ),
       ),
     );
   }
-}
 
-class _BarData {
-  final Color color;
-  final double value;
-  final double shadowValue;
-
-  const _BarData(this.color, this.value, this.shadowValue);
-}
-
-class _IconWidget extends ImplicitlyAnimatedWidget {
-  final Color color;
-  final bool isSelected;
-
-  const _IconWidget({
-    required this.color,
-    required this.isSelected,
-  }) : super(duration: const Duration(milliseconds: 300));
-
-  @override
-  ImplicitlyAnimatedWidgetState<ImplicitlyAnimatedWidget> createState() =>
-      _IconWidgetState();
-}
-
-class _IconWidgetState extends AnimatedWidgetBaseState<_IconWidget> {
-  Tween<double>? _rotationTween;
-
-  @override
-  Widget build(BuildContext context) {
-    final rotation = math.pi * 4 * _rotationTween!.evaluate(animation);
-    final scale = 1 + _rotationTween!.evaluate(animation) * 0.5;
-    return Transform(
-      transform: Matrix4.rotationZ(rotation).scaled(scale, scale),
-      origin: const Offset(14, 14),
-      child: Icon(
-        //! change icon chart
-        widget.isSelected
-            ? Icons.monetization_on
-            : Icons.monetization_on_rounded,
-        color: widget.color,
-        size: 28,
-      ),
+  BarChartGroupData makeGroupData(
+    int x,
+    double y, {
+    bool isTouched = false,
+    //! color bar
+    Color barColor = const Color.fromARGB(255, 248, 120, 84),
+    double width = 22,
+    List<int> showTooltips = const [],
+  }) {
+    return BarChartGroupData(
+      x: x,
+      barRods: [
+        BarChartRodData(
+          toY: isTouched ? y + 1 : y,
+          color: isTouched ? Colors.blue : barColor,
+          width: width,
+          borderSide: isTouched
+              ? BorderSide(color: Colors.blue, width: 1)
+              : const BorderSide(color: Colors.white, width: 0),
+          backDrawRodData: BackgroundBarChartRodData(
+            show: true,
+            toY: 20,
+            color: Colors.grey[400],
+          ),
+        ),
+      ],
+      showingTooltipIndicators: showTooltips,
     );
   }
 
-  @override
-  void forEachTween(TweenVisitor<dynamic> visitor) {
-    _rotationTween = visitor(
-      _rotationTween,
-      widget.isSelected ? 1.0 : 0.0,
-      (dynamic value) => Tween<double>(
-        begin: value,
-        end: widget.isSelected ? 1.0 : 0.0,
+  List<BarChartGroupData> showingGroups() =>
+      List.generate(listDataReport?.length ?? 0, (i) {
+        switch (i) {
+          case 0:
+            return makeGroupData(
+                0, double.parse(listDataReport?[i]['share'] ?? 0.0),
+                isTouched: i == touchedIndex);
+          case 1:
+            return makeGroupData(
+                1, double.parse(listDataReport?[i]['share'] ?? 0.0),
+                isTouched: i == touchedIndex);
+          case 2:
+            return makeGroupData(
+                2, double.parse(listDataReport?[i]['share'] ?? 0.0),
+                isTouched: i == touchedIndex);
+          case 3:
+            return makeGroupData(
+                3, double.parse(listDataReport?[i]['share'] ?? 0.0),
+                isTouched: i == touchedIndex);
+          case 4:
+            return makeGroupData(
+                4, double.parse(listDataReport?[i]['share'] ?? 0.0),
+                isTouched: i == touchedIndex);
+          case 5:
+            return makeGroupData(
+                5, double.parse(listDataReport?[i]['share'] ?? 0.0),
+                isTouched: i == touchedIndex);
+          case 6:
+            return makeGroupData(
+                6, double.parse(listDataReport?[i]['share'] ?? 0.0),
+                isTouched: i == touchedIndex);
+          default:
+            return throw Error();
+        }
+      });
+  // List.generate(7, (i) {
+  //       switch (i) {
+  //         case 0:
+  //           return makeGroupData(0, 5, isTouched: i == touchedIndex);
+  //         case 1:
+  //           return makeGroupData(1, 6.5, isTouched: i == touchedIndex);
+  //         case 2:
+  //           return makeGroupData(2, 5, isTouched: i == touchedIndex);
+  //         case 3:
+  //           return makeGroupData(3, 7.5, isTouched: i == touchedIndex);
+  //         case 4:
+  //           return makeGroupData(4, 9, isTouched: i == touchedIndex);
+  //         case 5:
+  //           return makeGroupData(5, 11.5, isTouched: i == touchedIndex);
+  //         case 6:
+  //           return makeGroupData(6, 6.5, isTouched: i == touchedIndex);
+  //         default:
+  //           return throw Error();
+  //       }
+  //     });
+
+  BarChartData mainBarData() {
+    return BarChartData(
+      barTouchData: BarTouchData(
+        touchTooltipData: BarTouchTooltipData(
+            tooltipBgColor: Color.fromARGB(255, 248, 120, 84),
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              String weekDay;
+              switch (group.x.toInt()) {
+                case 0:
+                  weekDay =
+                      '${listDataReport?[group.x.toInt()]['periode'].substring(0, 3) ?? ''}';
+                  break;
+                case 1:
+                  weekDay =
+                      '${listDataReport?[group.x.toInt()]['periode'].substring(0, 3) ?? ''}';
+                  break;
+                case 2:
+                  weekDay =
+                      '${listDataReport?[group.x.toInt()]['periode'].substring(0, 3) ?? ''}';
+                  break;
+                case 3:
+                  weekDay =
+                      '${listDataReport?[group.x.toInt()]['periode'].substring(0, 3) ?? ''}';
+                  break;
+                case 4:
+                  weekDay =
+                      '${listDataReport?[group.x.toInt()]['periode'].substring(0, 3) ?? ''}';
+                  break;
+                case 5:
+                  weekDay =
+                      '${listDataReport?[group.x.toInt()]['periode'] ?? ''}';
+                  break;
+                case 6:
+                  weekDay =
+                      '${listDataReport?[group.x.toInt()]['periode'] ?? ''}';
+                  break;
+                default:
+                  throw Error();
+              }
+              return BarTooltipItem(
+                weekDay + '\n',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+                children: <TextSpan>[
+                  TextSpan(
+                    text: (rod.toY - 1).toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              );
+            }),
+        touchCallback: (FlTouchEvent event, barTouchResponse) {
+          setState(() {
+            if (!event.isInterestedForInteractions ||
+                barTouchResponse == null ||
+                barTouchResponse.spot == null) {
+              touchedIndex = -1;
+              return;
+            }
+            touchedIndex = barTouchResponse.spot!.touchedBarGroupIndex;
+          });
+        },
       ),
-    ) as Tween<double>;
+      titlesData: FlTitlesData(
+        show: true,
+        rightTitles: AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+        topTitles: AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: getTitles,
+            reservedSize: 38,
+          ),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false,
+          ),
+        ),
+      ),
+      borderData: FlBorderData(
+        show: false,
+      ),
+      barGroups: showingGroups(),
+      gridData: FlGridData(show: false),
+    );
+  }
+
+  Widget getTitles(double value, TitleMeta meta) {
+    const style = TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      fontSize: 14,
+    );
+    Widget text;
+    switch (value.toInt()) {
+      case 0:
+        text = Text(
+            '${listDataReport?[value.toInt()]['periode'].substring(0, 3)}',
+            style: style);
+        break;
+      case 1:
+        text = Text(
+            '${listDataReport?[value.toInt()]['periode'].substring(0, 3)}',
+            style: style);
+        break;
+      case 2:
+        text = Text(
+            '${listDataReport?[value.toInt()]['periode'].substring(0, 3)}',
+            style: style);
+        break;
+      case 3:
+        text = Text(
+            '${listDataReport?[value.toInt()]['periode'].substring(0, 3)}',
+            style: style);
+        break;
+      case 4:
+        text = Text(
+            '${listDataReport?[value.toInt()]['periode'].substring(0, 3)}',
+            style: style);
+        break;
+      case 5:
+        text = Text(
+            '${listDataReport?[value.toInt()]['periode'].substring(0, 3)}',
+            style: style);
+        break;
+      case 6:
+        text = Text(
+            '${listDataReport?[value.toInt()]['periode'].substring(0, 3)}',
+            style: style);
+        break;
+      default:
+        text = Text('', style: style);
+        break;
+    }
+    return SideTitleWidget(
+      axisSide: meta.axisSide,
+      space: 16,
+      child: text,
+    );
+  }
+
+  BarChartData randomData() {
+    return BarChartData(
+      barTouchData: BarTouchData(
+        enabled: false,
+      ),
+      titlesData: FlTitlesData(
+        show: true,
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: getTitles,
+            reservedSize: 38,
+          ),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false,
+          ),
+        ),
+        topTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false,
+          ),
+        ),
+        rightTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: false,
+          ),
+        ),
+      ),
+      borderData: FlBorderData(
+        show: false,
+      ),
+      barGroups: List.generate(7, (i) {
+        switch (i) {
+          case 0:
+            return makeGroupData(0, Random().nextInt(15).toDouble() + 6,
+                barColor: widget.availableColors[
+                    Random().nextInt(widget.availableColors.length)]);
+          case 1:
+            return makeGroupData(1, Random().nextInt(15).toDouble() + 6,
+                barColor: widget.availableColors[
+                    Random().nextInt(widget.availableColors.length)]);
+          case 2:
+            return makeGroupData(2, Random().nextInt(15).toDouble() + 6,
+                barColor: widget.availableColors[
+                    Random().nextInt(widget.availableColors.length)]);
+          case 3:
+            return makeGroupData(3, Random().nextInt(15).toDouble() + 6,
+                barColor: widget.availableColors[
+                    Random().nextInt(widget.availableColors.length)]);
+          case 4:
+            return makeGroupData(4, Random().nextInt(15).toDouble() + 6,
+                barColor: widget.availableColors[
+                    Random().nextInt(widget.availableColors.length)]);
+          case 5:
+            return makeGroupData(5, Random().nextInt(15).toDouble() + 6,
+                barColor: widget.availableColors[
+                    Random().nextInt(widget.availableColors.length)]);
+          case 6:
+            return makeGroupData(6, Random().nextInt(15).toDouble() + 6,
+                barColor: widget.availableColors[
+                    Random().nextInt(widget.availableColors.length)]);
+          default:
+            return throw Error();
+        }
+      }),
+      gridData: FlGridData(show: false),
+    );
+  }
+
+  Future<dynamic> refreshState() async {
+    setState(() {});
+    await Future<dynamic>.delayed(
+        animDuration + const Duration(milliseconds: 50));
+    if (isPlaying) {
+      await refreshState();
+    }
   }
 }

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,7 +44,7 @@ class _AssetScreenState extends State<AssetScreen> {
 
   Future<dynamic> summary() async {
     try {
-      Future.delayed(Duration(seconds: 2), () async {
+      Future.delayed(Duration.zero, () async {
         setState(() {
           isLoading = true;
         });
@@ -161,25 +160,29 @@ class _AssetScreenState extends State<AssetScreen> {
                   decoration: BoxDecoration(boxShadow: [
                     BoxShadow(
                       color: grey,
-                      blurRadius: 4,
+                      blurRadius: 10,
                       offset: Offset(1, 2), // Shadow position
                     ),
                   ], borderRadius: BorderRadius.circular(10), color: white),
                   child: Column(
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Thumbnail",
-                            style: fontBold.copyWith(color: black),
-                          ),
-                          Text("Channel name",
-                              style: fontBold.copyWith(color: black)),
-                          Text("Final Revenue",
-                              style: fontBold.copyWith(color: black))
-                        ],
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        width: double.infinity,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Thumbnail",
+                              style: fontBold.copyWith(color: black),
+                            ),
+                            Text("Channel name",
+                                style: fontBold.copyWith(color: black)),
+                            Text("Final Revenue",
+                                style: fontBold.copyWith(color: black))
+                          ],
+                        ),
                       ),
                       Divider(),
                       Expanded(
@@ -195,13 +198,22 @@ class _AssetScreenState extends State<AssetScreen> {
                                 Container(
                                   width: 40,
                                   height: 40,
+                                  // decoration: BoxDecoration(
+                                  //   boxShadow: [
+                                  //     new BoxShadow(
+                                  //       color: grey,
+                                  //       blurRadius: 10,
+                                  //       offset: Offset(1, 2),
+                                  //     ),
+                                  //   ],
+                                  // ),
                                   child: Image(
                                     image: NetworkImage(
                                       "https://i.ytimg.com/vi/${listDataReport![index]['url_video'].substring(17)}/sddefault.jpg",
                                     ),
                                     errorBuilder: (context, error, stackTrace) {
                                       return Image.asset(
-                                          'assets/images/image_not_found.png',
+                                          'assets/images/no_images.png',
                                           fit: BoxFit.fitWidth);
                                     },
                                     fit: BoxFit.cover,

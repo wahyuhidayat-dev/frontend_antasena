@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? data_photo_url = prefs.getString('profile_photo_url');
     int? data_id = prefs.getInt('id');
     //print(userData);
+
     setState(() {
       access_token = data_token;
       id = data_id;
@@ -46,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<dynamic> summary() async {
     try {
-      Future.delayed(Duration(seconds: 2), () async {
+      Future.delayed(Duration.zero, () async {
         setState(() {
           isLoading = true;
         });
@@ -59,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   "Content-Type": "application/json",
                   "Authorization": "Bearer ${access_token}"
                 }));
-        //print(response.headers);
+        print("ini respon ${response.statusCode}");
         //print(data);
         var response2 =
             await Dio().post("http://10.0.2.2:8000/api/reports/user",
@@ -88,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoading = false;
       });
     } on DioError catch (dioError) {
+      // print("ini ${dioError.response!.statusCode}");
       String? message;
       if (dioError.response == null) {
         setState(() {
@@ -103,6 +105,11 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           isLoading = false;
           message = "Server not found!";
+        });
+      } else if (dioError.response!.statusCode == 401) {
+        setState(() {
+          isLoading = false;
+          message = "Unauthorized";
         });
       } else {
         setState(() {
@@ -120,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // });
             }),
       );
+
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
@@ -148,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
     //var link = "https://www.youtube.com/embed/ZnxK2yPHwr8";
     return Scaffold(
       key: _scaffoldkey,
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.grey[100],
       body: LoadingOverlay(
         isLoading: isLoading,
         child: SafeArea(
@@ -169,19 +177,31 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Welcome, ${name}",
                         style: fontBold.copyWith(color: orange, fontSize: 18),
                       ),
-                      CircleAvatar(
-                        backgroundColor: orange,
-                        child: Icon(
-                          Icons.account_circle_sharp,
-                          color: Colors.grey[200],
-                          size: 40,
+                      Container(
+                        decoration: BoxDecoration(
+                            boxShadow: [
+                              new BoxShadow(
+                                color: grey,
+                                blurRadius: 10,
+                                offset: Offset(1, 2),
+                              ),
+                            ],
+                            borderRadius: BorderRadius.all(Radius.circular(20)),
+                            color: orange),
+                        child: CircleAvatar(
+                          backgroundColor: orange,
+                          child: Icon(
+                            Icons.account_circle_sharp,
+                            color: Colors.grey[200],
+                            size: 40,
+                          ),
+                          // child: Image.network(
+                          //   profile_photo_url ?? "",
+                          //   fit: BoxFit.cover,
+                          //   width: 40,
+                          //   height: 40,
+                          // ),
                         ),
-                        // child: Image.network(
-                        //   profile_photo_url ?? "",
-                        //   fit: BoxFit.cover,
-                        //   width: 40,
-                        //   height: 40,
-                        // ),
                       )
                     ],
                   ),
@@ -199,6 +219,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 150,
                         height: 80,
                         decoration: BoxDecoration(
+                            boxShadow: [
+                              new BoxShadow(
+                                color: grey,
+                                blurRadius: 10,
+                                offset: Offset(1, 2),
+                              ),
+                            ],
                             borderRadius: BorderRadius.circular(10),
                             color: orange),
                         child: Column(
@@ -228,6 +255,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 150,
                         height: 80,
                         decoration: BoxDecoration(
+                            boxShadow: [
+                              new BoxShadow(
+                                color: grey,
+                                blurRadius: 10,
+                                offset: Offset(1, 2),
+                              ),
+                            ],
                             borderRadius: BorderRadius.circular(10),
                             color: orange),
                         child: Column(
@@ -261,7 +295,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: defaultMargin),
-                  child: BarChartSample7(),
+                  child: listDataReport?.length == Null
+                      ? Container(
+                          height: 0,
+                          width: 0,
+                        )
+                      : BarChartSample1(),
                 ),
                 SizedBox(
                   height: 20,
@@ -282,25 +321,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: BoxDecoration(boxShadow: [
                       BoxShadow(
                         color: grey,
-                        blurRadius: 4,
+                        blurRadius: 10,
                         offset: Offset(1, 2), // Shadow position
                       ),
                     ], borderRadius: BorderRadius.circular(10), color: white),
                     child: Column(
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Thumbnail",
-                              style: fontBold.copyWith(color: black),
-                            ),
-                            Text("Channel name",
-                                style: fontBold.copyWith(color: black)),
-                            Text("Final Revenue",
-                                style: fontBold.copyWith(color: black))
-                          ],
+                        Container(
+                          padding: EdgeInsets.all(10),
+                          width: double.infinity,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Thumbnail",
+                                style: fontBold.copyWith(color: black),
+                              ),
+                              Text("Channel name",
+                                  style: fontBold.copyWith(color: black)),
+                              Text("Final Revenue",
+                                  style: fontBold.copyWith(color: black))
+                            ],
+                          ),
                         ),
                         Divider(),
                         Expanded(
@@ -324,7 +367,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       errorBuilder:
                                           (context, error, stackTrace) {
                                         return Image.asset(
-                                            'assets/images/image_not_found.png',
+                                            'assets/images/no_images.png',
                                             fit: BoxFit.fitWidth);
                                       },
                                       fit: BoxFit.cover,

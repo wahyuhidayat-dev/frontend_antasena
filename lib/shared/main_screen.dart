@@ -41,6 +41,7 @@ class _MainScreeenState extends State<MainScreeen> {
     return Scaffold(
       body: _layoutPage.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: white,
         items: [
           BottomNavigationBarItem(
               icon: Icon(
