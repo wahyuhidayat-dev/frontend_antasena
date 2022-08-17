@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../screens/asset_screen.dart';
 import '../screens/home_screen.dart';
@@ -6,6 +7,8 @@ import '../screens/profile_screen.dart';
 import 'const.dart';
 
 class MainScreeen extends StatefulWidget {
+  //Map<String, dynamic>? listData;
+
   MainScreeen({Key? key}) : super(key: key);
 
   @override
@@ -13,9 +16,21 @@ class MainScreeen extends StatefulWidget {
 }
 
 class _MainScreeenState extends State<MainScreeen> {
+  @override
+  void initState() {
+    super.initState();
+    // home();
+  }
+
   int _selectedIndex = 0;
-  final _layoutPage = [HomeScreen(), AssetScreen(), ProfileScreen()];
-  void _onTabItem(int index) {
+
+  final List<StatefulWidget> _layoutPage = [
+    HomeScreen(),
+    AssetScreen(),
+    ProfileScreen()
+  ];
+
+  void _onTabItem(int index) async {
     setState(() {
       _selectedIndex = index;
     });
@@ -26,7 +41,7 @@ class _MainScreeenState extends State<MainScreeen> {
     return Scaffold(
       body: _layoutPage.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
-        items: const [
+        items: [
           BottomNavigationBarItem(
               icon: Icon(
                 Icons.home,
